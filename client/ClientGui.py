@@ -242,7 +242,6 @@ class Main_Room_application(Tkinter.Frame):
 			return
 		for k in self.client.room_app.keys():
 			self.client.room_app[k].back_room()
-			del self.client.room_app[k]
 		self.client.conn_sock.send_mess('04', str(self.allroom.get(self.allroom.curselection()[0])) )  # 发送进入房间消息
 		top = Tkinter.Toplevel(self)
 		new_room = Main_Chat_application(master = top,clientp = self.client,room_name = tmp_room)
