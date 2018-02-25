@@ -47,15 +47,15 @@ class User:
 		roomdict[ID].enter_room(self)
 		self.room = roomdict[ID]
 	
-	def notice_hall(self,mess_):
+	def notice_hall(self,mess_):  	#发送大厅消息
 		for usr in userlist:
 			usr.send_message(mess_)
 
-	def notice_room(self,mess_):
+	def notice_room(self,mess_):	#发送房间消息
 		if self.room: 
 			self.room.notice_room(mess_)
 	
-	def initOnTime(self,path):
+	def initOnTime(self,path):		#以下三个函数用于记录用户的在线时长并写入文件  path引用全局变量path = r'online_time.txt'
 		f = open(path,'a')
 		f.write(self.username + '|0\n')
 		f.close()
@@ -103,7 +103,7 @@ path = r'online_time.txt'
 game_num = {}
 room_answer = {}
 answer_valid = {}
-def hand_user_conn(usr,headcmd,data): #21点游戏还没有做 其实无论什么行为，到了客户端那边只要显示数据就行，不用分析命令标识？
+def hand_user_conn(usr,headcmd,data): 
 	global roomdict
 	global userlist
 	global path
@@ -123,7 +123,7 @@ def hand_user_conn(usr,headcmd,data): #21点游戏还没有做 其实无论什�
 			userpwddict[msg[0]] = msg[1]
 			cmd = '11'  #注册成功
 			usr.username = msg[0]
-			usr.initOnTime(path)
+			usr.initOnTime(path)   		#初始化用户的在线时长
 			print u'%s 注册成功，密码为：%s !' %(msg[0],msg[1])
 		if cmd != None:
 			alldata = DealMessage.sendMessage(cmd,usr.username)
@@ -146,7 +146,7 @@ def hand_user_conn(usr,headcmd,data): #21点游戏还没有做 其实无论什�
 		elif msg[1] != userpwddict[msg[0]]:
 			cmd = '02'  #密码错误
 		else:
-			usr.startOnLine()
+			usr.startOnLine()			#开始计时用户的在线时长
 			cmd = '01' #登录成功
 			usr.username = msg[0]
 			#userlist.append(usr)
@@ -171,7 +171,6 @@ def hand_user_conn(usr,headcmd,data): #21点游戏还没有做 其实无论什�
 			alldata = DealMessage.sendMessage('43',sendmess)  #更新所有已创建的房间
 			usr.send_message(alldata)
 		if cmd != None and cmd != '01':
-			#否则就告诉该用户失败信息
 			alldata = DealMessage.sendMessage(cmd,msg[0])
 			usr.send_message(alldata)
 
@@ -219,8 +218,8 @@ def hand_user_conn(usr,headcmd,data): #21点游戏还没有做 其实无论什�
 							game_num[room.ID] = []
 			pool.word_add(game,room)
 	
-	if headcmd == '70':
-		if answer_valid[usr.room.ID] == False: #need deal
+	if headcmd == '70':          #判断用户发来的21点游戏的数字是否合乎规矩并找出赢家
+		if answer_valid[usr.room.ID] == False: 
 			return 
 		valid_oper = ['+','-','*','/','(',')']
 		numlist = []
@@ -298,15 +297,15 @@ class handlersocket:
 		self.lenlisten = lenlisten
 		self.port = port
 		self.socket_bind_listen()
-		self.make_socket_nonblock()
+		self.make_socket_nonblock() 	#sock设置为非阻塞
 
 	def socket_bind_listen(self):
 		if self.port <= 1024 or self.port >= 65535:
 			self.port = 9999
 		try:
 			self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-			self.socket.bind(('0.0.0.0',self.port))
+			self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)		#端口复用设置
+			self.socket.bind(('0.0.0.0',self.port))								#IP和端口号   
 			self.socket.listen(self.lenlisten)
 		except:
 			self.socket.close()
@@ -331,14 +330,14 @@ class handlersocket:
 class epollhandlersocket:
 	def __init__(self,PORT,lenlisten,pool):
 		self.handlersocket = handlersocket(PORT,lenlisten)
-		self.socket = self.handlersocket.returnsocket()
-		self.epoll = select.epoll()
-		self.epoll.register(self.socket.fileno(),select.EPOLLIN|select.EPOLLET)
-		self.fd_to_socket = {self.socket.fileno():self.socket}
-		self.fd_to_usr = {}
+		self.socket = self.handlersocket.returnsocket()	
+		self.epoll = select.epoll()													
+		self.epoll.register(self.socket.fileno(),select.EPOLLIN|select.EPOLLET)		#注册
+		self.fd_to_socket = {self.socket.fileno():self.socket}		 #文件描述符以及对应socket的映射
+		self.fd_to_usr = {}											#文件描述符以及对应user的映射
 		self.pool = pool
-		self.message_queues = {}
-		self.sock_to_dealmessage = {}
+		self.message_queues = {}									 #用于存储不同sock下的消息队列
+		self.sock_to_dealmessage = {}								#主要用于在非阻塞情况下的消息的接收
 		print u'waiting for connection...'
 		
 	def epoll_wait(self):
@@ -347,7 +346,7 @@ class epollhandlersocket:
 	def clean_usr(self,sock,fd):  #用户退出时的清理动作
 		self.epoll.unregister(fd)
 		usr = self.fd_to_usr[fd]
-		usr.LogOnTime(path)
+		usr.LogOnTime(path)										#退出的时候记录用户的在线时长并写入文件
 		userlist.remove(usr)
 		del self.fd_to_socket[fd]
 		del self.sock_to_dealmessage[sock]
@@ -355,7 +354,7 @@ class epollhandlersocket:
 		del self.fd_to_usr[fd]
 		cmd = '00'
 		alldata = DealMessage.sendMessage(cmd,usr.username)
-		usr.notice_hall(alldata)
+		usr.notice_hall(alldata)							 # 退出之前须得告诉其他所有在线用户以便更新其他在线用户的在线列表
 		usr.logout_hall()
 	def epoll_handler(self,event,sock,fd):
 		if event & select.EPOLLIN:
@@ -370,7 +369,7 @@ class epollhandlersocket:
 		elif event & select.EPOLLOUT:
 				try:
 					alldata = self.message_queues[sock].get_nowait()
-				except Queue.Empty:
+				except Queue.Empty:			#消息队列无消息的时候重置此文件描述符
 					try:
 						self.epoll.modify(fd,select.EPOLLIN|select.EPOLLET|select.EPOLLONESHOT)
 					except:
@@ -387,17 +386,17 @@ class epollhandlersocket:
 		for fd,event in self._events:
 			socket = self.fd_to_socket[fd]
 			if socket == self.socket:
-				connect,addr = self.handlersocket.accept_connect()
-				self.sock_to_dealmessage[connect] = DealMessage.DealMessage()
+				connect,addr = self.handlersocket.accept_connect()		#接收客户端的连接并建立新连接
+				self.sock_to_dealmessage[connect] = DealMessage.DealMessage()	#主要用于接收特停客户端sock发送过来的消息
 				user = User(connect)
-				self.message_queues[connect] = Queue.Queue()
+				self.message_queues[connect] = Queue.Queue()			#将消息放入此对应的消息队列
 				self.fd_to_usr[connect.fileno()] = user  
 				self.epoll.register(connect.fileno(),select.EPOLLIN|select.EPOLLET|select.EPOLLONESHOT)
 				self.fd_to_socket[connect.fileno()] = connect
 			elif event & select.EPOLLHUP or event & select.EPOLLERR:
 				self.clean_usr(sock,fd)
 			else:
-				self.pool.word_add(self.epoll_handler,event,socket,fd)
+				self.pool.word_add(self.epoll_handler,event,socket,fd)				 #线程池的运用
 
 def initOnTime():
 	global path
@@ -411,7 +410,7 @@ pool = threadpool.PoolManage(10)
 def main():
 	global pool
 	initOnTime()
-	signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+	signal.signal(signal.SIGPIPE, signal.SIG_IGN)  #忽略sigpipe以防止写入关闭的端口产生sigpipe后会关闭服务端进程
 	handlersocket = epollhandlersocket(9999,10,pool)
 	while True:
 		handlersocket.epoll_wait()
@@ -420,5 +419,6 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
 
 

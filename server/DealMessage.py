@@ -1,19 +1,11 @@
 #!/usr/bin/python
 #coding:utf-8
 
-
-
-#when client want to quit,press 'quit',and add '00' do cmd makepackage send to cserver
-#except quit need do something make strong 
 import sys
 import struct
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
-
-
-
-
 
 def sendMessage(headcmd,datamess):
 		send_data = str(headcmd)+struct.pack('<I',len(datamess.encode('utf-8')))+datamess
@@ -35,7 +27,6 @@ class DealMessage:
 		self.alldata_buffer += tmp_buffer
 
 		if not tmp_buffer:
-			#need deal
 			return None
 
 		while True:
@@ -87,3 +78,4 @@ class DealMessage:
 					break
 
 		return None
+
