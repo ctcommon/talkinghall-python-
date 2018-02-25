@@ -31,9 +31,10 @@ class client:
 		self.gui.quit()
 try:
 	app = client()
-	app.show()
+	app.show()     #显示登录窗口
 except IOError:
 	raise
 finally:
 	app.conn_sock.CloseConnection()
 	app.close()
+
